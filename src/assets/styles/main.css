@@ -1,0 +1,32 @@
+/* Light reset */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+:root {
+  --color-primary: #ff6668;
+  --color-primary-dark: #ef5558;
+  --color-background: #fffdfb;
+  --color-background-soft: #fff7f3;
+  --color-text: #303030;
+  --color-text-muted: #6d6d6d;
+  --color-border: #eee4df;
+  --color-category: #fde4de;
+  --color-progress: #299ca5;
+  --container-width: 1200px;
+}
+
+html,
+body,
+#app {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: Inter, Arial, Helvetica, sans-serif;
+  color: var(--color-text);
+  background-color: var(--color-background);
+}

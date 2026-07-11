@@ -1,3 +1,8 @@
+<script setup>
+import AppNavbar from '../components/layout/AppNavbar.vue'
+</script>
+
 <template>
-  <h1>Fundelio</h1>
+  <AppNavbar />
+  <main class="home-page"></main>
 </template>
