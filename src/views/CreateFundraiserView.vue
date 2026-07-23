@@ -1,6 +1,6 @@
 <script setup>
-import { computed, ref } from 'vue'
-import { ArrowLeft, ArrowRight } from 'lucide-vue-next'
+import { computed, onBeforeUnmount, ref } from 'vue'
+import { ArrowLeft, ArrowRight, Globe2, Lock, Upload } from 'lucide-vue-next'
 import AppNavbar from '../components/layout/AppNavbar.vue'
 
 const selectedCategory = ref('')
@@ -10,6 +10,11 @@ const hasGoal = ref(true)
 const goal = ref('')
 const hideContributions = ref(false)
 const endDate = ref('')
+const description = ref(
+  'Bienvenue sur cette cagnotte !\nParticipez en un clic.\nChacun participe du montant qu’il souhaite.\nTous les paiements sont sécurisés.\nMerci à tous !',
+)
+const visibility = ref('public')
+const photoPreview = ref('')
 
 const formIsValid = computed(() => {
   const amount = Number(goal.value)
@@ -20,13 +25,32 @@ const formIsValid = computed(() => {
 })
 
 const goBack = () => {
-  if (step.value === 2) step.value = 1
+  if (step.value > 1) step.value -= 1
 }
 
 const goToProject = () => {
   step.value = 2
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
+
+const goToCustomize = () => {
+  if (!formIsValid.value) return
+  step.value = 3
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
+const setPhoto = (file) => {
+  if (!file?.type.startsWith('image/')) return
+  if (photoPreview.value) URL.revokeObjectURL(photoPreview.value)
+  photoPreview.value = URL.createObjectURL(file)
+}
+
+const onPhotoChange = (event) => setPhoto(event.target.files?.[0])
+const onPhotoDrop = (event) => setPhoto(event.dataTransfer.files?.[0])
+
+onBeforeUnmount(() => {
+  if (photoPreview.value) URL.revokeObjectURL(photoPreview.value)
+})
 
 const groups = [
   {
@@ -100,12 +124,19 @@ const tileStyle = (index) => ({
       <header class="wizard-heading">
         <h1 id="page-title">Créer une cagnotte</h1>
         <p>
-          Étape {{ step }}/4 — {{ step === 1 ? 'Catégorie' : 'Mon projet' }}
+          Étape {{ step }}/4 —
+          {{
+            step === 1
+              ? 'Catégorie'
+              : step === 2
+                ? 'Mon projet'
+                : 'Personnaliser'
+          }}
         </p>
         <div class="progress" :aria-label="`Étape ${step} sur 4`">
           <span :class="{ active: step >= 1 }"></span>
           <span :class="{ active: step >= 2 }"></span>
-          <span></span><span></span>
+          <span :class="{ active: step >= 3 }"></span><span></span>
         </div>
       </header>
 
@@ -151,7 +182,11 @@ const tileStyle = (index) => ({
         </footer>
       </div>
 
-      <form v-else class="category-card project-form" @submit.prevent>
+      <form
+        v-else-if="step === 2"
+        class="category-card project-form"
+        @submit.prevent="goToCustomize"
+      >
         <div class="card-intro">
           <h2>Présenter mon projet</h2>
         </div>
@@ -227,6 +262,79 @@ const tileStyle = (index) => ({
             type="submit"
             :disabled="!formIsValid"
           >
+            Continuer <ArrowRight :size="17" />
+          </button>
+        </footer>
+      </form>
+
+      <form v-else class="category-card customize-form" @submit.prevent>
+        <div class="card-intro">
+          <h2>Personnaliser ma cagnotte <span aria-hidden="true">✏️</span></h2>
+        </div>
+
+        <div class="custom-field">
+          <label for="fundraiser-photo">Ajouter une photo</label>
+          <label
+            class="photo-dropzone"
+            :class="{ 'has-photo': photoPreview }"
+            for="fundraiser-photo"
+            @dragover.prevent
+            @drop.prevent="onPhotoDrop"
+          >
+            <img
+              v-if="photoPreview"
+              :src="photoPreview"
+              alt="Aperçu de la photo"
+            />
+            <span v-else>
+              <Upload :size="27" />
+              Télécharger une photo
+            </span>
+          </label>
+          <input
+            id="fundraiser-photo"
+            class="sr-only"
+            type="file"
+            accept="image/*"
+            @change="onPhotoChange"
+          />
+        </div>
+
+        <div class="custom-field">
+          <label for="fundraiser-description">Ajouter une description</label>
+          <textarea
+            id="fundraiser-description"
+            v-model="description"
+            rows="6"
+          ></textarea>
+        </div>
+
+        <fieldset class="visibility-field">
+          <legend>Visibilité</legend>
+          <div class="visibility-options">
+            <label :class="{ selected: visibility === 'public' }">
+              <input v-model="visibility" type="radio" value="public" />
+              <Globe2 :size="17" />
+              <span
+                ><strong>Publique</strong><small>Visible par tous</small></span
+              >
+            </label>
+            <label :class="{ selected: visibility === 'private' }">
+              <input v-model="visibility" type="radio" value="private" />
+              <Lock :size="17" />
+              <span
+                ><strong>Privée</strong
+                ><small>Accès par lien uniquement</small></span
+              >
+            </label>
+          </div>
+        </fieldset>
+
+        <footer class="form-footer">
+          <button class="previous-button" type="button" @click="step = 2">
+            <ArrowLeft :size="17" /> Précédent
+          </button>
+          <button class="continue-button" type="submit">
             Continuer <ArrowRight :size="17" />
           </button>
         </footer>
@@ -544,6 +652,120 @@ const tileStyle = (index) => ({
   cursor: pointer;
 }
 
+.customize-form {
+  padding: 37px 32px 31px;
+}
+.customize-form .card-intro {
+  margin-bottom: 27px;
+}
+.custom-field {
+  margin-top: 22px;
+}
+.custom-field > label,
+.visibility-field legend {
+  display: block;
+  margin-bottom: 9px;
+  color: #242424;
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+.photo-dropzone {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 160px;
+  overflow: hidden;
+  border: 2px dashed #f0d4cb;
+  border-radius: 12px;
+  color: var(--color-text-muted) !important;
+  font-weight: 500 !important;
+  cursor: pointer;
+  transition:
+    border-color 0.18s ease,
+    background 0.18s ease;
+}
+.photo-dropzone:hover {
+  border-color: var(--color-primary);
+  background: #fffaf8;
+}
+.photo-dropzone > span {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.photo-dropzone.has-photo {
+  border-style: solid;
+}
+.photo-dropzone img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.custom-field textarea {
+  display: block;
+  width: 100%;
+  min-height: 118px;
+  padding: 10px 13px;
+  resize: vertical;
+  border: 1px solid #ead8d1;
+  border-radius: 11px;
+  background: #fff;
+  color: var(--color-text);
+  font: inherit;
+  font-size: 0.88rem;
+  line-height: 1.45;
+  outline: none;
+}
+.custom-field textarea:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(255, 102, 104, 0.13);
+}
+.visibility-field {
+  min-width: 0;
+  margin: 20px 0 0;
+  padding: 0;
+  border: 0;
+}
+.visibility-options {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+.visibility-options > label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 68px;
+  padding: 12px 14px;
+  border: 2px solid #eadbd5;
+  border-radius: 12px;
+  cursor: pointer;
+}
+.visibility-options > label.selected {
+  border-color: var(--color-primary);
+  background: #fff8f6;
+}
+.visibility-options input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--color-primary);
+}
+.visibility-options strong,
+.visibility-options small {
+  display: block;
+}
+.visibility-options strong {
+  font-size: 0.85rem;
+}
+.visibility-options small {
+  margin-top: 2px;
+  color: var(--color-text-muted);
+  font-size: 0.72rem;
+}
+
 @media (max-width: 600px) {
   .create-page {
     padding: 28px 14px;
@@ -561,6 +783,12 @@ const tileStyle = (index) => ({
   }
   .category-tile span {
     font-size: 0.72rem;
+  }
+  .visibility-options {
+    grid-template-columns: 1fr;
+  }
+  .photo-dropzone {
+    height: 145px;
   }
 }
 </style>
