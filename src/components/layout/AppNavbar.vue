@@ -5,32 +5,36 @@ import { CircleHelp, LayoutGrid, Plus, Search, Wallet } from 'lucide-vue-next'
 <template>
   <header class="app-navbar">
     <div class="navbar-container">
-      <a class="brand" href="#" aria-label="Accueil Fundelio">
+      <RouterLink class="brand" to="/" aria-label="Accueil Fundelio">
         <span class="brand-icon" aria-hidden="true">
           <Wallet :size="16" />
         </span>
         <span class="brand-text">Fundelio</span>
-      </a>
+      </RouterLink>
 
       <nav class="navbar-links" aria-label="Navigation principale">
-        <a class="nav-link nav-link-active" href="#">
+        <RouterLink class="nav-link" to="/">
           <Search :size="16" />
           <span>Découvrir</span>
-        </a>
-        <a class="nav-link" href="#">
+        </RouterLink>
+        <RouterLink class="nav-link" to="/projects">
           <LayoutGrid :size="16" />
           <span>Mes cagnottes</span>
-        </a>
+        </RouterLink>
         <a class="nav-link" href="#">
           <CircleHelp :size="16" />
           <span>Centre d'aide</span>
         </a>
       </nav>
 
-      <a class="create-button" href="#" aria-label="Créer une cagnotte">
+      <RouterLink
+        class="create-button"
+        to="/creer-une-cagnotte"
+        aria-label="Créer une cagnotte"
+      >
         <Plus :size="16" />
         <span class="create-label">Créer une cagnotte</span>
-      </a>
+      </RouterLink>
     </div>
   </header>
 </template>
@@ -101,7 +105,7 @@ import { CircleHelp, LayoutGrid, Plus, Search, Wallet } from 'lucide-vue-next'
   border-radius: 12px;
 }
 
-.nav-link-active {
+.nav-link.router-link-exact-active {
   background: var(--color-background-soft);
   color: var(--color-text);
 }

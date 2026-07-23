@@ -18,11 +18,11 @@
         </p>
 
         <div class="hero-actions">
-          <a class="button button-primary" href="#"
-            >+ Cr&eacute;er ma cagnotte</a
+          <RouterLink class="button button-primary" to="/creer-une-cagnotte"
+            >+ Cr&eacute;er ma cagnotte</RouterLink
           >
-          <a class="button button-secondary" href="#"
-            >D&eacute;couvrir les projets &rarr;</a
+          <RouterLink class="button button-secondary" to="/projects"
+            >D&eacute;couvrir les projets &rarr;</RouterLink
           >
         </div>
       </div>
