@@ -1,9 +1,32 @@
 <script setup>
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { ArrowLeft, ArrowRight } from 'lucide-vue-next'
 import AppNavbar from '../components/layout/AppNavbar.vue'
 
 const selectedCategory = ref('')
+const step = ref(1)
+const title = ref('')
+const hasGoal = ref(true)
+const goal = ref('')
+const hideContributions = ref(false)
+const endDate = ref('')
+
+const formIsValid = computed(() => {
+  const amount = Number(goal.value)
+  return (
+    title.value.trim().length > 0 &&
+    (!hasGoal.value || (Number.isFinite(amount) && amount > 0))
+  )
+})
+
+const goBack = () => {
+  if (step.value === 2) step.value = 1
+}
+
+const goToProject = () => {
+  step.value = 2
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+}
 
 const groups = [
   {
@@ -60,20 +83,33 @@ const tileStyle = (index) => ({
   <AppNavbar />
   <main class="create-page">
     <section class="wizard" aria-labelledby="page-title">
-      <RouterLink class="back-link" to="/">
+      <RouterLink v-if="step === 1" class="back-link" to="/">
         <ArrowLeft :size="16" />
         Retour
       </RouterLink>
+      <button
+        v-else
+        class="back-link back-button"
+        type="button"
+        @click="goBack"
+      >
+        <ArrowLeft :size="16" />
+        Retour
+      </button>
 
       <header class="wizard-heading">
         <h1 id="page-title">Créer une cagnotte</h1>
-        <p>Étape 1/4 — Catégorie</p>
-        <div class="progress" aria-label="Étape 1 sur 4">
-          <span class="active"></span><span></span><span></span><span></span>
+        <p>
+          Étape {{ step }}/4 — {{ step === 1 ? 'Catégorie' : 'Mon projet' }}
+        </p>
+        <div class="progress" :aria-label="`Étape ${step} sur 4`">
+          <span :class="{ active: step >= 1 }"></span>
+          <span :class="{ active: step >= 2 }"></span>
+          <span></span><span></span>
         </div>
       </header>
 
-      <div class="category-card">
+      <div v-if="step === 1" class="category-card">
         <div class="card-intro">
           <h2>Choisissez votre catégorie</h2>
           <p>Pour quel type de projet créez-vous cette cagnotte ?</p>
@@ -108,11 +144,93 @@ const tileStyle = (index) => ({
             class="continue-button"
             type="button"
             :disabled="!selectedCategory"
+            @click="goToProject"
           >
             Continuer <ArrowRight :size="17" />
           </button>
         </footer>
       </div>
+
+      <form v-else class="category-card project-form" @submit.prevent>
+        <div class="card-intro">
+          <h2>Présenter mon projet</h2>
+        </div>
+
+        <div class="field title-field">
+          <label for="fundraiser-title">
+            Titre de la cagnotte <span aria-hidden="true">*</span>
+            <small>/ 80</small>
+          </label>
+          <input
+            id="fundraiser-title"
+            v-model="title"
+            maxlength="80"
+            type="text"
+            placeholder="Titre de la cagnotte"
+            required
+          />
+          <span class="character-count" aria-live="polite"
+            >{{ title.length }}/80</span
+          >
+        </div>
+
+        <div class="option-row">
+          <div>
+            <strong>Définir un montant à atteindre</strong>
+            <span
+              >Vous pourrez toujours modifier votre objectif plus tard.</span
+            >
+          </div>
+          <label class="switch">
+            <input v-model="hasGoal" type="checkbox" />
+            <span></span>
+            <b class="sr-only">Définir un montant à atteindre</b>
+          </label>
+        </div>
+
+        <div v-if="hasGoal" class="field">
+          <label for="fundraiser-goal">Objectif (€)</label>
+          <input
+            id="fundraiser-goal"
+            v-model="goal"
+            type="number"
+            min="1"
+            inputmode="numeric"
+            placeholder="Ex: 1000"
+            required
+          />
+        </div>
+
+        <div class="option-row">
+          <div>
+            <strong>Cacher le montant des participations</strong>
+            <span>Les montants ne seront pas visibles publiquement.</span>
+          </div>
+          <label class="switch">
+            <input v-model="hideContributions" type="checkbox" />
+            <span></span>
+            <b class="sr-only">Cacher le montant des participations</b>
+          </label>
+        </div>
+
+        <div class="field">
+          <label for="fundraiser-date">Date de fin (optionnelle)</label>
+          <input id="fundraiser-date" v-model="endDate" type="date" />
+        </div>
+
+        <footer class="form-footer">
+          <button class="previous-button" type="button" @click="step = 1">
+            <ArrowLeft :size="17" /> Précédent
+          </button>
+          <button
+            class="continue-button"
+            type="submit"
+            :disabled="!formIsValid"
+          >
+            Continuer <ArrowRight :size="17" />
+          </button>
+        </footer>
+      </form>
     </section>
   </main>
 </template>
@@ -140,6 +258,13 @@ const tileStyle = (index) => ({
 
 .back-link:hover {
   color: var(--color-text);
+}
+.back-button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
 }
 
 .wizard-heading {
@@ -275,6 +400,148 @@ const tileStyle = (index) => ({
 .continue-button:disabled {
   background: #ffacad;
   cursor: not-allowed;
+}
+
+.project-form {
+  padding: 37px 32px 31px;
+}
+.project-form .card-intro {
+  margin-bottom: 27px;
+}
+.field {
+  margin-top: 24px;
+}
+.field label {
+  display: block;
+  margin-bottom: 8px;
+  color: #242424;
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+.field label small {
+  color: var(--color-text-muted);
+  font-size: 0.76rem;
+  font-weight: 500;
+}
+.field input {
+  width: 100%;
+  height: 39px;
+  padding: 0 13px;
+  border: 1px solid #ead8d1;
+  border-radius: 11px;
+  background: #fff;
+  color: var(--color-text);
+  font: inherit;
+  font-size: 0.9rem;
+  outline: none;
+  box-shadow: 0 1px 2px rgba(65, 42, 30, 0.04);
+}
+.field input:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(255, 102, 104, 0.13);
+}
+.title-field {
+  position: relative;
+  margin-top: 0;
+  padding-bottom: 18px;
+}
+.character-count {
+  position: absolute;
+  right: 1px;
+  bottom: 0;
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+}
+.option-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  min-height: 68px;
+  margin-top: 20px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: #fff0eb;
+}
+.option-row strong,
+.option-row > div > span {
+  display: block;
+}
+.option-row strong {
+  font-size: 0.87rem;
+}
+.option-row > div > span {
+  margin-top: 3px;
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+}
+.switch {
+  position: relative;
+  flex: 0 0 auto;
+  width: 38px;
+  height: 22px;
+  cursor: pointer;
+}
+.switch input {
+  position: absolute;
+  opacity: 0;
+}
+.switch > span {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 999px;
+  background: #eadeda;
+  transition: background 0.18s ease;
+}
+.switch > span::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  transition: transform 0.18s ease;
+}
+.switch input:checked + span {
+  background: var(--color-primary);
+}
+.switch input:checked + span::after {
+  transform: translateX(16px);
+}
+.switch input:focus-visible + span {
+  outline: 3px solid rgba(255, 102, 104, 0.25);
+  outline-offset: 2px;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+}
+.form-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 31px;
+  padding-top: 24px;
+  border-top: 1px solid var(--color-border);
+}
+.previous-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
 }
 
 @media (max-width: 600px) {
