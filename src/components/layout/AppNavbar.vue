@@ -21,10 +21,10 @@ import { CircleHelp, LayoutGrid, Plus, Search, Wallet } from 'lucide-vue-next'
           <LayoutGrid :size="16" />
           <span>Mes cagnottes</span>
         </RouterLink>
-        <a class="nav-link" href="#">
+        <RouterLink class="nav-link" to="/centre-aide">
           <CircleHelp :size="16" />
           <span>Centre d'aide</span>
-        </a>
+        </RouterLink>
       </nav>
 
       <RouterLink
