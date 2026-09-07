@@ -1,6 +1,13 @@
 <script setup>
 import { computed, onBeforeUnmount, ref } from 'vue'
-import { ArrowLeft, ArrowRight, Globe2, Lock, Upload } from 'lucide-vue-next'
+import {
+  ArrowLeft,
+  ArrowRight,
+  Check,
+  Globe2,
+  Lock,
+  Upload,
+} from 'lucide-vue-next'
 import AppNavbar from '../components/layout/AppNavbar.vue'
 
 const selectedCategory = ref('')
@@ -15,6 +22,10 @@ const description = ref(
 )
 const visibility = ref('public')
 const photoPreview = ref('')
+const firstName = ref('')
+const lastName = ref('')
+const email = ref('')
+const phone = ref('')
 
 const formIsValid = computed(() => {
   const amount = Number(goal.value)
@@ -23,6 +34,14 @@ const formIsValid = computed(() => {
     (!hasGoal.value || (Number.isFinite(amount) && amount > 0))
   )
 })
+
+const identityIsValid = computed(
+  () =>
+    firstName.value.trim().length > 0 &&
+    lastName.value.trim().length > 0 &&
+    email.value.trim().length > 0 &&
+    phone.value.trim().length > 0,
+)
 
 const goBack = () => {
   if (step.value > 1) step.value -= 1
@@ -37,6 +56,15 @@ const goToCustomize = () => {
   if (!formIsValid.value) return
   step.value = 3
   window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
+const goToIdentity = () => {
+  step.value = 4
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
+const createFundraiser = () => {
+  if (!identityIsValid.value) return
 }
 
 const setPhoto = (file) => {
@@ -130,13 +158,16 @@ const tileStyle = (index) => ({
               ? 'Catégorie'
               : step === 2
                 ? 'Mon projet'
-                : 'Personnaliser'
+                : step === 3
+                  ? 'Personnaliser'
+                  : 'Mes infos'
           }}
         </p>
         <div class="progress" :aria-label="`Étape ${step} sur 4`">
           <span :class="{ active: step >= 1 }"></span>
           <span :class="{ active: step >= 2 }"></span>
-          <span :class="{ active: step >= 3 }"></span><span></span>
+          <span :class="{ active: step >= 3 }"></span>
+          <span :class="{ active: step >= 4 }"></span>
         </div>
       </header>
 
@@ -267,7 +298,11 @@ const tileStyle = (index) => ({
         </footer>
       </form>
 
-      <form v-else class="category-card customize-form" @submit.prevent>
+      <form
+        v-else-if="step === 3"
+        class="category-card customize-form"
+        @submit.prevent
+      >
         <div class="card-intro">
           <h2>Personnaliser ma cagnotte <span aria-hidden="true">✏️</span></h2>
         </div>
@@ -334,8 +369,101 @@ const tileStyle = (index) => ({
           <button class="previous-button" type="button" @click="step = 2">
             <ArrowLeft :size="17" /> Précédent
           </button>
-          <button class="continue-button" type="submit">
+          <button class="continue-button" type="button" @click="goToIdentity">
             Continuer <ArrowRight :size="17" />
+          </button>
+        </footer>
+      </form>
+
+      <form
+        v-else
+        class="category-card identity-form"
+        @submit.prevent="createFundraiser"
+      >
+        <div class="card-intro">
+          <h2>
+            Définissez vos identifiants <span aria-hidden="true">🔐</span>
+          </h2>
+        </div>
+
+        <div class="identity-grid">
+          <div class="identity-field">
+            <label for="fundraiser-first-name"
+              >Prénom <span aria-hidden="true">*</span></label
+            >
+            <input
+              id="fundraiser-first-name"
+              v-model="firstName"
+              type="text"
+              placeholder="Prénom"
+              required
+            />
+          </div>
+          <div class="identity-field">
+            <label for="fundraiser-last-name"
+              >Nom <span aria-hidden="true">*</span></label
+            >
+            <input
+              id="fundraiser-last-name"
+              v-model="lastName"
+              type="text"
+              placeholder="Nom"
+              required
+            />
+          </div>
+        </div>
+
+        <div class="identity-field">
+          <label for="fundraiser-email"
+            >Email <span aria-hidden="true">*</span></label
+          >
+          <input
+            id="fundraiser-email"
+            v-model="email"
+            type="email"
+            placeholder="Confirmez votre email"
+            required
+          />
+        </div>
+
+        <div class="identity-field phone-field">
+          <label for="fundraiser-phone">Téléphone portable</label>
+          <div class="phone-input">
+            <span>+33</span>
+            <input
+              id="fundraiser-phone"
+              v-model="phone"
+              type="tel"
+              placeholder="Téléphone portable"
+              required
+            />
+          </div>
+          <small
+            >Votre numéro nous permet de sécuriser votre compte et vos
+            transactions.</small
+          >
+        </div>
+
+        <div class="summary-box">
+          <strong>Récapitulatif</strong>
+          <p>📌 {{ title || 'Votre cagnotte' }}</p>
+          <p v-if="hasGoal">🎯 Objectif : {{ goal || '—' }} €</p>
+          <p v-if="endDate">📅 Fin : {{ endDate }}</p>
+          <p>
+            🌍 Cagnotte {{ visibility === 'public' ? 'publique' : 'privée' }}
+          </p>
+        </div>
+
+        <footer class="form-footer">
+          <button class="previous-button" type="button" @click="step = 3">
+            <ArrowLeft :size="17" /> Précédent
+          </button>
+          <button
+            class="continue-button"
+            type="submit"
+            :disabled="!identityIsValid"
+          >
+            <Check :size="17" /> Créer ma cagnotte
           </button>
         </footer>
       </form>
@@ -766,6 +894,88 @@ const tileStyle = (index) => ({
   font-size: 0.72rem;
 }
 
+.identity-form {
+  padding: 34px 32px 31px;
+}
+.identity-form .card-intro {
+  margin-bottom: 22px;
+}
+.identity-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+.identity-field {
+  margin-top: 18px;
+}
+.identity-grid .identity-field {
+  margin-top: 0;
+}
+.identity-field label {
+  display: block;
+  margin-bottom: 7px;
+  color: #242424;
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+.identity-field input {
+  width: 100%;
+  height: 37px;
+  padding: 0 12px;
+  border: 1px solid #ead8d1;
+  border-radius: 11px;
+  background: #fff;
+  color: var(--color-text);
+  font: inherit;
+  font-size: 0.86rem;
+  outline: none;
+  box-shadow: 0 1px 2px rgba(65, 42, 30, 0.04);
+}
+.identity-field input:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(255, 102, 104, 0.13);
+}
+.phone-input {
+  display: flex;
+  gap: 8px;
+}
+.phone-input > span {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 12px;
+  border-radius: 11px;
+  background: #fff0eb;
+  color: #242424;
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+.phone-input input {
+  flex: 1;
+}
+.identity-field > small {
+  display: block;
+  margin-top: 4px;
+  color: var(--color-text-muted);
+  font-size: 0.72rem;
+}
+.summary-box {
+  margin-top: 16px;
+  padding: 14px 16px;
+  border: 1px solid #f3d9d3;
+  border-radius: 12px;
+  background: #fff8f6;
+}
+.summary-box strong {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 0.88rem;
+}
+.summary-box p {
+  margin-top: 3px;
+  color: #5f5960;
+  font-size: 0.8rem;
+}
+
 @media (max-width: 600px) {
   .create-page {
     padding: 28px 14px;
@@ -786,6 +996,13 @@ const tileStyle = (index) => ({
   }
   .visibility-options {
     grid-template-columns: 1fr;
+  }
+  .identity-grid {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+  .identity-grid .identity-field {
+    margin-top: 18px;
   }
   .photo-dropzone {
     height: 145px;
