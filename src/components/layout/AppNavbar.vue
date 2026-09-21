@@ -1,5 +1,8 @@
 <script setup>
 import { CircleHelp, LayoutGrid, Plus, Search, Wallet } from 'lucide-vue-next'
+import { useAuthStore } from '../../stores/authStore'
+
+const auth = useAuthStore()
 </script>
 
 <template>
@@ -26,6 +29,21 @@ import { CircleHelp, LayoutGrid, Plus, Search, Wallet } from 'lucide-vue-next'
           <span>Centre d'aide</span>
         </RouterLink>
       </nav>
+
+      <div v-if="!auth.isAuthenticated" class="auth-actions">
+        <RouterLink class="sign-in-link" to="/connexion?mode=login">
+          Se connecter
+        </RouterLink>
+        <RouterLink class="sign-up-button" to="/connexion?mode=signup">
+          S’inscrire
+        </RouterLink>
+      </div>
+      <div v-else class="user-actions">
+        <span class="user-greeting">Bonjour {{ auth.user.firstName }}</span>
+        <button class="logout-button" type="button" @click="auth.logout()">
+          Déconnexion
+        </button>
+      </div>
 
       <RouterLink
         class="create-button"
@@ -129,6 +147,46 @@ import { CircleHelp, LayoutGrid, Plus, Search, Wallet } from 'lucide-vue-next'
   background: var(--color-primary-dark);
 }
 
+.auth-actions,
+.user-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.sign-in-link,
+.logout-button {
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.sign-up-button {
+  padding: 10px 13px;
+  border-radius: 10px;
+  background: #fff0eb;
+  color: var(--color-primary-dark);
+  font-size: 0.85rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.logout-button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+
+.user-greeting {
+  color: var(--color-text-muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
 @media (max-width: 768px) {
   .navbar-container {
     padding: 0 14px;
@@ -148,6 +206,21 @@ import { CircleHelp, LayoutGrid, Plus, Search, Wallet } from 'lucide-vue-next'
 
   .create-label {
     display: none;
+  }
+
+  .auth-actions,
+  .user-actions {
+    gap: 7px;
+  }
+
+  .sign-in-link,
+  .user-greeting {
+    display: none;
+  }
+
+  .sign-up-button {
+    padding: 9px 10px;
+    font-size: 0.78rem;
   }
 }
 </style>

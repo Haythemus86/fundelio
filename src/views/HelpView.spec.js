@@ -1,10 +1,12 @@
 import { mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
 import HelpView from './HelpView.vue'
+import { createPinia } from 'pinia'
 
 const mountView = () =>
   mount(HelpView, {
     global: {
+      plugins: [createPinia()],
       stubs: {
         RouterLink: {
           template: '<a v-bind="$attrs"><slot /></a>',

@@ -1,6 +1,7 @@
 import { mount } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import CreateFundraiserView from './CreateFundraiserView.vue'
+import { createPinia } from 'pinia'
 
 vi.mock('vue-router', () => ({
   useRouter: () => ({ push: vi.fn() }),
@@ -13,6 +14,7 @@ const routerLinkStub = {
 const mountView = () =>
   mount(CreateFundraiserView, {
     global: {
+      plugins: [createPinia()],
       stubs: {
         RouterLink: routerLinkStub,
       },

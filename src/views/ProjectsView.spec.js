@@ -1,6 +1,7 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import ProjectsView from './ProjectsView.vue'
+import { createPinia } from 'pinia'
 
 const mockFundraisers = [
   {
@@ -29,6 +30,7 @@ const mockFundraisers = [
     id: 3,
     title: 'Pot de départ de Thomas',
     category: 'Pot de départ / Retraite',
+      plugins: [createPinia()],
     raised: 800,
     goal: 800,
     endDate: '2026-05-20',
@@ -48,6 +50,7 @@ const mountView = async () => {
   fetchFundraisers.mockResolvedValue(mockFundraisers)
   const wrapper = mount(ProjectsView, {
     global: {
+      plugins: [createPinia()],
       stubs: {
         RouterLink: {
           template: '<a v-bind="$attrs"><slot /></a>',

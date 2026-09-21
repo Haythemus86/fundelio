@@ -7,6 +7,18 @@ const api = axios.create({
   },
 })
 
+api.interceptors.request.use((config) => {
+  try {
+    const session = JSON.parse(localStorage.getItem('fundelio-auth') || 'null')
+    if (session?.accessToken) {
+      config.headers.Authorization = `Bearer ${session.accessToken}`
+    }
+  } catch {
+    // Ignore malformed local sessions and let public requests continue.
+  }
+  return config
+})
+
 const toNumber = (value) => (value == null ? 0 : Number(value))
 
 const normalizeFundraiser = (fundraiser) => {
@@ -40,6 +52,11 @@ export const fetchCategories = async () => {
 
 export const registerUser = async (payload) => {
   const { data } = await api.post('/auth/register', payload)
+  return data
+}
+
+export const loginUser = async (payload) => {
+  const { data } = await api.post('/auth/login', payload)
   return data
 }
 
