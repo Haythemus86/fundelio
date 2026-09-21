@@ -65,4 +65,9 @@ export const createFundraiser = async (payload) => {
   return data
 }
 
+export const accessGuestFundraisers = async (payload) => {
+  const { data } = await api.post('/fundraisers/access', payload)
+  return data.map(normalizeFundraiser)
+}
+
 export default api

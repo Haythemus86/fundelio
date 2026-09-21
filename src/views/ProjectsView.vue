@@ -14,13 +14,17 @@ import {
   Target,
 } from 'lucide-vue-next'
 import AppNavbar from '../components/layout/AppNavbar.vue'
-import { fetchFundraisers } from '../services/fundelioApi'
+import { accessGuestFundraisers, fetchFundraisers } from '../services/fundelioApi'
 
 const search = ref('')
 const statusFilter = ref('all')
 const fundraisers = ref([])
 const isLoading = ref(true)
 const loadError = ref('')
+const guestEmail = ref('')
+const guestPassword = ref('')
+const guestError = ref('')
+const isGuestLoading = ref(false)
 
 onMounted(async () => {
   try {
@@ -86,6 +90,25 @@ const resetFilters = () => {
   search.value = ''
   statusFilter.value = 'all'
 }
+
+const accessGuestCagnottes = async () => {
+  guestError.value = ''
+  isGuestLoading.value = true
+  try {
+    fundraisers.value = await accessGuestFundraisers({
+      email: guestEmail.value,
+      password: guestPassword.value,
+    })
+    search.value = ''
+    statusFilter.value = 'all'
+  } catch (error) {
+    guestError.value =
+      error.response?.data?.message ||
+      'Impossible de retrouver une cagnotte avec ces identifiants.'
+  } finally {
+    isGuestLoading.value = false
+  }
+}
 </script>
 
 <template>
@@ -129,6 +152,25 @@ const resetFilters = () => {
           </div>
         </article>
       </section>
+
+      <form class="guest-access" @submit.prevent="accessGuestCagnottes">
+        <div>
+          <strong>Retrouver une cagnotte créée sans compte</strong>
+          <p>Utilisez l’email et le mot de passe choisis lors de sa création.</p>
+        </div>
+        <label>
+          <span class="sr-only">Email de la cagnotte</span>
+          <input v-model="guestEmail" type="email" placeholder="Email" required />
+        </label>
+        <label>
+          <span class="sr-only">Mot de passe de la cagnotte</span>
+          <input v-model="guestPassword" type="password" placeholder="Mot de passe" minlength="8" required />
+        </label>
+        <button type="submit" :disabled="isGuestLoading">
+          {{ isGuestLoading ? 'Recherche…' : 'Retrouver' }}
+        </button>
+        <p v-if="guestError" class="guest-access-error" role="alert">{{ guestError }}</p>
+      </form>
 
       <section class="projects-toolbar" aria-label="Filtrer les cagnottes">
         <label class="search-field">
@@ -392,6 +434,24 @@ const resetFilters = () => {
   padding-bottom: 14px;
   border-bottom: 1px solid var(--color-border);
 }
+
+.guest-access {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) 180px 180px auto;
+  gap: 10px;
+  align-items: center;
+  margin-top: 24px;
+  padding: 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: #fff8f3;
+}
+.guest-access strong { font-size: 0.86rem; }
+.guest-access p { margin: 4px 0 0; color: var(--color-text-muted); font-size: 0.76rem; }
+.guest-access input { width: 100%; min-height: 38px; padding: 8px 10px; border: 1px solid var(--color-border); border-radius: 8px; font: inherit; }
+.guest-access button { min-height: 38px; padding: 0 14px; border: 0; border-radius: 8px; background: var(--color-primary); color: #fff; font: inherit; font-size: 0.8rem; font-weight: 800; cursor: pointer; }
+.guest-access button:disabled { opacity: 0.6; cursor: wait; }
+.guest-access-error { grid-column: 1 / -1; color: #b84d4f !important; }
 
 .search-field {
   display: flex;
@@ -711,6 +771,8 @@ const resetFilters = () => {
     flex-wrap: wrap;
     margin-top: 30px;
   }
+  .guest-access { grid-template-columns: 1fr 1fr; }
+  .guest-access > div, .guest-access-error { grid-column: 1 / -1; }
   .search-field {
     width: 100%;
   }
