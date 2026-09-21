@@ -3,6 +3,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import CreateFundraiserView from './CreateFundraiserView.vue'
 import { createPinia } from 'pinia'
 
+const { createFundraiser } = vi.hoisted(() => ({
+  createFundraiser: vi.fn(),
+}))
+
+vi.mock('../services/fundelioApi', () => ({
+  createFundraiser,
+}))
+
 vi.mock('vue-router', () => ({
   useRouter: () => ({ push: vi.fn() }),
 }))
@@ -52,6 +60,7 @@ const selectFile = async (wrapper, file) => {
 
 describe('CreateFundraiserView', () => {
   beforeEach(() => {
+    createFundraiser.mockResolvedValue({ id: 'fundraiser-1' })
     vi.stubGlobal('scrollTo', vi.fn())
     vi.stubGlobal('URL', {
       createObjectURL: vi.fn(() => 'blob:fundraiser-photo'),
@@ -61,6 +70,7 @@ describe('CreateFundraiserView', () => {
 
   afterEach(() => {
     vi.unstubAllGlobals()
+    localStorage.clear()
   })
 
   it('affiche la première étape avec la catégorie obligatoire', () => {
@@ -197,7 +207,7 @@ describe('CreateFundraiserView', () => {
     await goToStep4(wrapper)
 
     expect(wrapper.get('.wizard-heading p').text()).toContain('Étape 4/4')
-    expect(wrapper.get('h2').text()).toContain('Définissez vos identifiants')
+    expect(wrapper.get('h2').text()).toContain('Finalisez votre cagnotte')
     expect(wrapper.get('.summary-box').text()).toContain('Pot de départ')
     expect(wrapper.get('.summary-box').text()).toContain('1500')
     expect(wrapper.get('.summary-box').text()).toContain('Cagnotte publique')
@@ -224,14 +234,48 @@ describe('CreateFundraiserView', () => {
 
     expect(create.attributes('disabled')).toBe('')
 
-    await wrapper.get('#fundraiser-first-name').setValue('Alice')
-    await wrapper.get('#fundraiser-last-name').setValue('Martin')
+    await wrapper.get('.choice-button.secondary').trigger('click')
     await wrapper.get('#fundraiser-email').setValue('alice@example.com')
     expect(create.attributes('disabled')).toBe('')
 
-    await wrapper.get('#fundraiser-phone').setValue('612345678')
     await wrapper.get('#fundraiser-password').setValue('motdepasse')
     expect(create.attributes('disabled')).toBeUndefined()
+  })
+
+  it('crée une cagnotte invitée sans inscrire un utilisateur', async () => {
+    const wrapper = mountView()
+    await goToStep4(wrapper)
+    await wrapper.get('.choice-button.secondary').trigger('click')
+    await wrapper.get('#fundraiser-email').setValue('alice@example.com')
+    await wrapper.get('#fundraiser-password').setValue('motdepasse')
+    await wrapper.get('form').trigger('submit')
+
+    expect(createFundraiser).toHaveBeenCalledWith(
+      expect.objectContaining({
+        guestAccess: {
+          email: 'alice@example.com',
+          password: 'motdepasse',
+        },
+      }),
+    )
+    expect(createFundraiser.mock.calls[0][0]).not.toHaveProperty('creatorId')
+  })
+
+  it('ne demande pas d’identifiants à un utilisateur connecté', async () => {
+    localStorage.setItem(
+      'fundelio-auth',
+      JSON.stringify({
+        accessToken: 'token',
+        user: { id: 'user-1', email: 'alice@example.com', firstName: 'Alice' },
+      }),
+    )
+    const wrapper = mountView()
+    await goToStep4(wrapper)
+
+    expect(wrapper.find('.identity-session').exists()).toBe(true)
+    expect(wrapper.find('.identity-choice').exists()).toBe(false)
+    expect(wrapper.find('#fundraiser-email').exists()).toBe(false)
+    expect(wrapper.get('button[type="submit"]').attributes('disabled')).toBeUndefined()
   })
 
   it('permet de revenir en arrière depuis chaque étape', async () => {

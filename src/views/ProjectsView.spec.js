@@ -41,10 +41,11 @@ const mockFundraisers = [
 ]
 
 vi.mock('../services/fundelioApi', () => ({
+  accessGuestFundraisers: vi.fn(),
   fetchFundraisers: vi.fn(),
 }))
 
-const { fetchFundraisers } = await import('../services/fundelioApi')
+const { accessGuestFundraisers, fetchFundraisers } = await import('../services/fundelioApi')
 
 const mountView = async () => {
   fetchFundraisers.mockResolvedValue(mockFundraisers)
@@ -64,6 +65,7 @@ const mountView = async () => {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  accessGuestFundraisers.mockResolvedValue(mockFundraisers)
 })
 
 describe('ProjectsView', () => {
@@ -85,6 +87,18 @@ describe('ProjectsView', () => {
 
     expect(createLink.attributes('to')).toBe('/creer-une-cagnotte')
     expect(createLink.text()).toContain('Créer une cagnotte')
+  })
+
+  it('retrouve les cagnottes invitées avec leur email et mot de passe', async () => {
+    const wrapper = await mountView()
+    await wrapper.get('.guest-access input[type="email"]').setValue('alice@example.com')
+    await wrapper.get('.guest-access input[type="password"]').setValue('motdepasse')
+    await wrapper.get('.guest-access').trigger('submit')
+
+    expect(accessGuestFundraisers).toHaveBeenCalledWith({
+      email: 'alice@example.com',
+      password: 'motdepasse',
+    })
   })
 
   it('affiche la progression et les informations de chaque cagnotte', async () => {

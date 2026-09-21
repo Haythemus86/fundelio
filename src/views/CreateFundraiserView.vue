@@ -9,10 +9,12 @@ import {
   Upload,
 } from 'lucide-vue-next'
 import AppNavbar from '../components/layout/AppNavbar.vue'
-import { createFundraiser as postFundraiser, registerUser } from '../services/fundelioApi'
+import { createFundraiser as postFundraiser } from '../services/fundelioApi'
+import { useAuthStore } from '../stores/authStore'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
+const auth = useAuthStore()
 const selectedCategory = ref('')
 const step = ref(1)
 const title = ref('')
@@ -25,11 +27,9 @@ const description = ref(
 )
 const visibility = ref('public')
 const photoPreview = ref('')
-const firstName = ref('')
-const lastName = ref('')
 const email = ref('')
-const phone = ref('')
 const password = ref('')
+const creationMode = ref('')
 const isSubmitting = ref(false)
 const createError = ref('')
 
@@ -43,11 +43,10 @@ const formIsValid = computed(() => {
 
 const identityIsValid = computed(
   () =>
-    firstName.value.trim().length > 0 &&
-    lastName.value.trim().length > 0 &&
-    email.value.trim().length > 0 &&
-    phone.value.trim().length > 0 &&
-    password.value.length >= 8
+    auth.isAuthenticated ||
+    (creationMode.value === 'guest' &&
+      email.value.trim().length > 0 &&
+      password.value.length >= 8)
 )
 
 const goBack = () => {
@@ -77,20 +76,11 @@ const createFundraiser = async () => {
   createError.value = ''
 
   try {
-    const { user } = await registerUser({
-      firstName: firstName.value,
-      lastName: lastName.value,
-      email: email.value,
-      phone: phone.value,
-      password: password.value,
-    })
-
     const categoryId = groups
       .flatMap((group) => group.items)
       .find(([label]) => label === selectedCategory.value)?.[1]
 
-    await postFundraiser({
-      creatorId: user.id,
+    const payload = {
       categoryId: categoryId + 1,
       title: title.value,
       description: description.value,
@@ -99,7 +89,16 @@ const createFundraiser = async () => {
       visibility: visibility.value.toUpperCase(),
       hideContributions: hideContributions.value,
       endDate: endDate.value || undefined,
-    })
+    }
+
+    if (!auth.isAuthenticated) {
+      payload.guestAccess = {
+        email: email.value,
+        password: password.value,
+      }
+    }
+
+    await postFundraiser(payload)
 
     await router.push('/projects')
   } catch (error) {
@@ -425,81 +424,42 @@ const tileStyle = (index) => ({
         @submit.prevent="createFundraiser"
       >
         <div class="card-intro">
-          <h2>
-            Définissez vos identifiants <span aria-hidden="true">🔐</span>
-          </h2>
+          <h2>Finalisez votre cagnotte <span aria-hidden="true">🔐</span></h2>
         </div>
 
-        <div class="identity-grid">
+        <div v-if="auth.isAuthenticated" class="identity-session">
+          <strong>Vous êtes connecté</strong>
+          <p>{{ auth.user?.firstName }} · {{ auth.user?.email }}</p>
+          <small>Votre cagnotte sera rattachée à votre compte Fundelio.</small>
+        </div>
+
+        <div v-else class="identity-choice">
+          <p>Pour suivre votre cagnotte, choisissez un mode de création.</p>
+          <RouterLink
+            class="choice-button"
+            to="/connexion?redirect=/creer-une-cagnotte"
+          >
+            Se connecter ou s’inscrire
+          </RouterLink>
+          <button
+            class="choice-button secondary"
+            type="button"
+            @click="creationMode = 'guest'"
+          >
+            Continuer sans compte
+          </button>
+        </div>
+
+        <div v-if="!auth.isAuthenticated && creationMode === 'guest'" class="guest-fields">
+          <p class="guest-note">Votre email et ce mot de passe servent uniquement à retrouver cette cagnotte. Aucun compte Fundelio ne sera créé.</p>
           <div class="identity-field">
-            <label for="fundraiser-first-name"
-              >Prénom <span aria-hidden="true">*</span></label
-            >
-            <input
-              id="fundraiser-first-name"
-              v-model="firstName"
-              type="text"
-              placeholder="Prénom"
-              required
-            />
+            <label for="fundraiser-email">Email <span aria-hidden="true">*</span></label>
+            <input id="fundraiser-email" v-model="email" type="email" placeholder="vous@exemple.com" required />
           </div>
           <div class="identity-field">
-            <label for="fundraiser-last-name"
-              >Nom <span aria-hidden="true">*</span></label
-            >
-            <input
-              id="fundraiser-last-name"
-              v-model="lastName"
-              type="text"
-              placeholder="Nom"
-              required
-            />
+            <label for="fundraiser-password">Mot de passe <span aria-hidden="true">*</span></label>
+            <input id="fundraiser-password" v-model="password" type="password" minlength="8" placeholder="8 caractères minimum" required />
           </div>
-        </div>
-
-        <div class="identity-field">
-          <label for="fundraiser-email"
-            >Email <span aria-hidden="true">*</span></label
-          >
-          <input
-            id="fundraiser-email"
-            v-model="email"
-            type="email"
-            placeholder="Confirmez votre email"
-            required
-          />
-        </div>
-
-        <div class="identity-field phone-field">
-          <label for="fundraiser-phone">Téléphone portable</label>
-          <div class="phone-input">
-            <span>+33</span>
-            <input
-              id="fundraiser-phone"
-              v-model="phone"
-              type="tel"
-              placeholder="Téléphone portable"
-              required
-            />
-          </div>
-          <small
-            >Votre numéro nous permet de sécuriser votre compte et vos
-            transactions.</small
-          >
-        </div>
-
-        <div class="identity-field">
-          <label for="fundraiser-password"
-            >Mot de passe <span aria-hidden="true">*</span></label
-          >
-          <input
-            id="fundraiser-password"
-            v-model="password"
-            type="password"
-            minlength="8"
-            placeholder="8 caractères minimum"
-            required
-          />
         </div>
 
         <p v-if="createError" class="error-state" role="alert">
@@ -601,6 +561,58 @@ const tileStyle = (index) => ({
   border-radius: 16px;
   background: #fff;
   box-shadow: 0 2px 4px rgba(64, 43, 33, 0.04);
+}
+
+.identity-session,
+.identity-choice,
+.guest-fields {
+  margin-top: 20px;
+}
+.identity-session {
+  padding: 16px;
+  border: 1px solid #d4eee8;
+  border-radius: 10px;
+  background: #f0faf7;
+}
+.identity-session p,
+.identity-session small,
+.identity-choice p,
+.guest-note {
+  display: block;
+  margin: 6px 0 0;
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+}
+.identity-choice {
+  display: grid;
+  gap: 10px;
+}
+.identity-choice p {
+  margin: 0 0 3px;
+}
+.choice-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  border: 1px solid var(--color-primary);
+  border-radius: 9px;
+  background: var(--color-primary);
+  color: #fff;
+  font: inherit;
+  font-weight: 800;
+  text-decoration: none;
+  cursor: pointer;
+}
+.choice-button.secondary {
+  background: #fff;
+  color: var(--color-primary-dark);
+}
+.guest-note {
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #fff7ed;
 }
 
 .card-intro h2 {
