@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import {
   ArrowRight,
   CalendarDays,
@@ -14,45 +14,23 @@ import {
   Target,
 } from 'lucide-vue-next'
 import AppNavbar from '../components/layout/AppNavbar.vue'
+import { fetchFundraisers } from '../services/fundelioApi'
 
 const search = ref('')
 const statusFilter = ref('all')
+const fundraisers = ref([])
+const isLoading = ref(true)
+const loadError = ref('')
 
-const fundraisers = [
-  {
-    id: 1,
-    title: 'Test anniv',
-    category: 'Anniversaire',
-    raised: 875,
-    goal: 1500,
-    endDate: '2026-09-30',
-    visibility: 'public',
-    emoji: '🎂',
-    color: 'coral',
-  },
-  {
-    id: 2,
-    title: 'Un nouveau départ pour Léa',
-    category: 'Entraide',
-    raised: 2120,
-    goal: 3500,
-    endDate: '2026-11-15',
-    visibility: 'public',
-    emoji: '🤝',
-    color: 'mint',
-  },
-  {
-    id: 3,
-    title: 'Pot de départ de Thomas',
-    category: 'Pot de départ / Retraite',
-    raised: 800,
-    goal: 800,
-    endDate: '2026-05-20',
-    visibility: 'private',
-    emoji: '🎉',
-    color: 'lavender',
-  },
-]
+onMounted(async () => {
+  try {
+    fundraisers.value = await fetchFundraisers()
+  } catch {
+    loadError.value = 'Impossible de charger les cagnottes pour le moment.'
+  } finally {
+    isLoading.value = false
+  }
+})
 
 const formatAmount = (amount) =>
   new Intl.NumberFormat('fr-FR', {
@@ -62,21 +40,28 @@ const formatAmount = (amount) =>
   }).format(amount)
 
 const formatDate = (date) =>
-  new Intl.DateTimeFormat('fr-FR', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  }).format(new Date(`${date}T12:00:00`))
+  date
+    ? new Intl.DateTimeFormat('fr-FR', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      }).format(new Date(`${date}T12:00:00`))
+    : 'sans date de fin'
 
 const progress = (fundraiser) =>
-  Math.min(100, Math.round((fundraiser.raised / fundraiser.goal) * 100))
+  fundraiser.goal > 0
+    ? Math.min(100, Math.round((fundraiser.raised / fundraiser.goal) * 100))
+    : 0
 
-const isCompleted = (fundraiser) => fundraiser.raised >= fundraiser.goal
+const isCompleted = (fundraiser) =>
+  fundraiser.status
+    ? fundraiser.status === 'COMPLETED'
+    : fundraiser.raised >= fundraiser.goal
 
 const visibleFundraisers = computed(() => {
   const query = search.value.trim().toLowerCase()
 
-  return fundraisers.filter((fundraiser) => {
+  return fundraisers.value.filter((fundraiser) => {
     const matchesSearch = [fundraiser.title, fundraiser.category].some(
       (value) => value.toLowerCase().includes(query),
     )
@@ -90,11 +75,11 @@ const visibleFundraisers = computed(() => {
 })
 
 const totalRaised = computed(() =>
-  fundraisers.reduce((total, fundraiser) => total + fundraiser.raised, 0),
+  fundraisers.value.reduce((total, fundraiser) => total + fundraiser.raised, 0),
 )
 
 const activeCount = computed(
-  () => fundraisers.filter((fundraiser) => !isCompleted(fundraiser)).length,
+  () => fundraisers.value.filter((fundraiser) => !isCompleted(fundraiser)).length,
 )
 
 const resetFilters = () => {
@@ -188,7 +173,11 @@ const resetFilters = () => {
           >
         </div>
 
-        <div v-if="visibleFundraisers.length" class="fundraisers-grid">
+        <p v-if="isLoading" class="loading-state">Chargement des cagnottes…</p>
+        <p v-else-if="loadError" class="error-state" role="alert">
+          {{ loadError }}
+        </p>
+        <div v-else-if="visibleFundraisers.length" class="fundraisers-grid">
           <article
             v-for="fundraiser in visibleFundraisers"
             :key="fundraiser.id"
