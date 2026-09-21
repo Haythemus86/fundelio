@@ -1,9 +1,52 @@
-import { mount } from '@vue/test-utils'
-import { describe, expect, it } from 'vitest'
+import { flushPromises, mount } from '@vue/test-utils'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import ProjectsView from './ProjectsView.vue'
 
-const mountView = () =>
-  mount(ProjectsView, {
+const mockFundraisers = [
+  {
+    id: 1,
+    title: 'Test anniv',
+    category: 'Anniversaire',
+    raised: 875,
+    goal: 1500,
+    endDate: '2026-09-30',
+    visibility: 'public',
+    emoji: '🎂',
+    color: 'coral',
+  },
+  {
+    id: 2,
+    title: 'Un nouveau départ pour Léa',
+    category: 'Entraide',
+    raised: 2120,
+    goal: 3500,
+    endDate: '2026-11-15',
+    visibility: 'public',
+    emoji: '🤝',
+    color: 'mint',
+  },
+  {
+    id: 3,
+    title: 'Pot de départ de Thomas',
+    category: 'Pot de départ / Retraite',
+    raised: 800,
+    goal: 800,
+    endDate: '2026-05-20',
+    visibility: 'private',
+    emoji: '🎉',
+    color: 'lavender',
+  },
+]
+
+vi.mock('../services/fundelioApi', () => ({
+  fetchFundraisers: vi.fn(),
+}))
+
+const { fetchFundraisers } = await import('../services/fundelioApi')
+
+const mountView = async () => {
+  fetchFundraisers.mockResolvedValue(mockFundraisers)
+  const wrapper = mount(ProjectsView, {
     global: {
       stubs: {
         RouterLink: {
@@ -12,10 +55,17 @@ const mountView = () =>
       },
     },
   })
+  await flushPromises()
+  return wrapper
+}
+
+beforeEach(() => {
+  vi.clearAllMocks()
+})
 
 describe('ProjectsView', () => {
-  it('affiche l’espace Mes cagnottes et ses statistiques', () => {
-    const wrapper = mountView()
+  it('affiche l’espace Mes cagnottes et ses statistiques', async () => {
+    const wrapper = await mountView()
 
     expect(wrapper.get('h1').text()).toBe('Mes cagnottes')
     expect(wrapper.get('.projects-intro').text()).toContain(
@@ -26,16 +76,16 @@ describe('ProjectsView', () => {
     expect(wrapper.get('.stat-card strong').text()).toBe('3')
   })
 
-  it('propose un lien pour créer une nouvelle cagnotte', () => {
-    const wrapper = mountView()
+  it('propose un lien pour créer une nouvelle cagnotte', async () => {
+    const wrapper = await mountView()
     const createLink = wrapper.get('.create-project-button')
 
     expect(createLink.attributes('to')).toBe('/creer-une-cagnotte')
     expect(createLink.text()).toContain('Créer une cagnotte')
   })
 
-  it('affiche la progression et les informations de chaque cagnotte', () => {
-    const wrapper = mountView()
+  it('affiche la progression et les informations de chaque cagnotte', async () => {
+    const wrapper = await mountView()
     const cards = wrapper.findAll('.fundraiser-card')
 
     expect(cards[0].text()).toContain('Test anniv')
@@ -49,7 +99,7 @@ describe('ProjectsView', () => {
   })
 
   it('filtre les cagnottes en cours et terminées', async () => {
-    const wrapper = mountView()
+    const wrapper = await mountView()
     const filters = wrapper.findAll('.filter-tab')
 
     await filters[1].trigger('click')
@@ -65,7 +115,7 @@ describe('ProjectsView', () => {
   })
 
   it('recherche par titre ou catégorie', async () => {
-    const wrapper = mountView()
+    const wrapper = await mountView()
     const search = wrapper.get('input[type="search"]')
 
     await search.setValue('entraide')
@@ -83,7 +133,7 @@ describe('ProjectsView', () => {
   })
 
   it('réinitialise les filtres depuis l’état vide', async () => {
-    const wrapper = mountView()
+    const wrapper = await mountView()
     await wrapper.get('input[type="search"]').setValue('inexistant')
     await wrapper.get('.empty-state button').trigger('click')
 
@@ -92,8 +142,8 @@ describe('ProjectsView', () => {
     expect(wrapper.get('.filter-tab').attributes('aria-selected')).toBe('true')
   })
 
-  it('expose les actions Voir et Gérer sur chaque carte', () => {
-    const wrapper = mountView()
+  it('expose les actions Voir et Gérer sur chaque carte', async () => {
+    const wrapper = await mountView()
 
     wrapper.findAll('.fundraiser-card').forEach((card) => {
       expect(card.find('.secondary-action').text()).toContain('Voir')
@@ -101,8 +151,8 @@ describe('ProjectsView', () => {
     })
   })
 
-  it('reste responsive avec la recherche et les filtres accessibles', () => {
-    const wrapper = mountView()
+  it('reste responsive avec la recherche et les filtres accessibles', async () => {
+    const wrapper = await mountView()
 
     expect(wrapper.get('input[type="search"]').attributes('aria-label')).toBe(
       'Rechercher une cagnotte',

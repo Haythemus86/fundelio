@@ -9,7 +9,10 @@ import {
   Upload,
 } from 'lucide-vue-next'
 import AppNavbar from '../components/layout/AppNavbar.vue'
+import { createFundraiser as postFundraiser, registerUser } from '../services/fundelioApi'
+import { useRouter } from 'vue-router'
 
+const router = useRouter()
 const selectedCategory = ref('')
 const step = ref(1)
 const title = ref('')
@@ -26,6 +29,9 @@ const firstName = ref('')
 const lastName = ref('')
 const email = ref('')
 const phone = ref('')
+const password = ref('')
+const isSubmitting = ref(false)
+const createError = ref('')
 
 const formIsValid = computed(() => {
   const amount = Number(goal.value)
@@ -40,7 +46,8 @@ const identityIsValid = computed(
     firstName.value.trim().length > 0 &&
     lastName.value.trim().length > 0 &&
     email.value.trim().length > 0 &&
-    phone.value.trim().length > 0,
+    phone.value.trim().length > 0 &&
+    password.value.length >= 8
 )
 
 const goBack = () => {
@@ -63,8 +70,45 @@ const goToIdentity = () => {
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
-const createFundraiser = () => {
+const createFundraiser = async () => {
   if (!identityIsValid.value) return
+
+  isSubmitting.value = true
+  createError.value = ''
+
+  try {
+    const { user } = await registerUser({
+      firstName: firstName.value,
+      lastName: lastName.value,
+      email: email.value,
+      phone: phone.value,
+      password: password.value,
+    })
+
+    const categoryId = groups
+      .flatMap((group) => group.items)
+      .find(([label]) => label === selectedCategory.value)?.[1]
+
+    await postFundraiser({
+      creatorId: user.id,
+      categoryId: categoryId + 1,
+      title: title.value,
+      description: description.value,
+      hasGoal: hasGoal.value,
+      goalAmount: hasGoal.value ? Number(goal.value) : undefined,
+      visibility: visibility.value.toUpperCase(),
+      hideContributions: hideContributions.value,
+      endDate: endDate.value || undefined,
+    })
+
+    await router.push('/projects')
+  } catch (error) {
+    createError.value =
+      error.response?.data?.message ||
+      'La création de la cagnotte a échoué. Veuillez réessayer.'
+  } finally {
+    isSubmitting.value = false
+  }
 }
 
 const setPhoto = (file) => {
@@ -444,6 +488,24 @@ const tileStyle = (index) => ({
           >
         </div>
 
+        <div class="identity-field">
+          <label for="fundraiser-password"
+            >Mot de passe <span aria-hidden="true">*</span></label
+          >
+          <input
+            id="fundraiser-password"
+            v-model="password"
+            type="password"
+            minlength="8"
+            placeholder="8 caractères minimum"
+            required
+          />
+        </div>
+
+        <p v-if="createError" class="error-state" role="alert">
+          {{ createError }}
+        </p>
+
         <div class="summary-box">
           <strong>Récapitulatif</strong>
           <p>📌 {{ title || 'Votre cagnotte' }}</p>
@@ -461,9 +523,10 @@ const tileStyle = (index) => ({
           <button
             class="continue-button"
             type="submit"
-            :disabled="!identityIsValid"
+            :disabled="!identityIsValid || isSubmitting"
           >
-            <Check :size="17" /> Créer ma cagnotte
+            <Check :size="17" />
+            {{ isSubmitting ? 'Création…' : 'Créer ma cagnotte' }}
           </button>
         </footer>
       </form>

@@ -2,6 +2,10 @@ import { mount } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import CreateFundraiserView from './CreateFundraiserView.vue'
 
+vi.mock('vue-router', () => ({
+  useRouter: () => ({ push: vi.fn() }),
+}))
+
 const routerLinkStub = {
   template: '<a><slot /></a>',
 }
@@ -224,6 +228,7 @@ describe('CreateFundraiserView', () => {
     expect(create.attributes('disabled')).toBe('')
 
     await wrapper.get('#fundraiser-phone').setValue('612345678')
+    await wrapper.get('#fundraiser-password').setValue('motdepasse')
     expect(create.attributes('disabled')).toBeUndefined()
   })
 
