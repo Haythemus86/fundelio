@@ -60,9 +60,60 @@ export const loginUser = async (payload) => {
   return data
 }
 
+export const fetchMyProfile = async () => {
+  const { data } = await api.get('/auth/me')
+  return data
+}
+
+export const updateMyProfile = async (payload) => {
+  const { data } = await api.patch('/auth/me', payload)
+  return data
+}
+
+export const changeMyPassword = async (payload) => {
+  const { data } = await api.patch('/auth/me/password', payload)
+  return data
+}
+
+export const deleteMyAccount = async (payload) => {
+  const { data } = await api.delete('/auth/me', { data: payload })
+  return data
+}
+
+export const uploadMyProfilePhoto = async (file) => {
+  const formData = new FormData()
+  formData.append('photo', file)
+  const { data } = await api.post('/auth/me/profile-photo', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
+  return data
+}
+
+export const fetchMyProfilePhoto = async () => {
+  const { data } = await api.get('/auth/me/profile-photo', {
+    responseType: 'blob',
+  })
+  return data
+}
+
+export const deleteMyProfilePhoto = async () => {
+  const { data } = await api.delete('/auth/me/profile-photo')
+  return data
+}
+
 export const createFundraiser = async (payload) => {
   const { data } = await api.post('/fundraisers', payload)
   return data
+}
+
+export const fetchMyFundraisers = async () => {
+  const { data } = await api.get('/fundraisers/mine')
+  return data.map(normalizeFundraiser)
+}
+
+export const updateFundraiser = async (id, payload) => {
+  const { data } = await api.patch(`/fundraisers/${id}`, payload)
+  return normalizeFundraiser(data)
 }
 
 export const accessGuestFundraisers = async (payload) => {

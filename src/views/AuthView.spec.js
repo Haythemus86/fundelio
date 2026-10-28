@@ -54,7 +54,7 @@ describe('AuthView', () => {
       email: 'alice@example.com',
       password: 'motdepasse',
     })
-    expect(push).toHaveBeenCalledWith('/projects')
+    expect(push).toHaveBeenCalledWith('/compte/cagnottes')
   })
 
   it('propose une inscription email et mot de passe', async () => {

@@ -30,6 +30,9 @@ export const useAuthStore = defineStore('auth', {
       this.user = session.user
       localStorage.setItem(STORAGE_KEY, JSON.stringify(session))
     },
+    saveUser(user) {
+      this.saveSession({ accessToken: this.accessToken, user })
+    },
     async register(payload) {
       this.isLoading = true
       this.error = ''

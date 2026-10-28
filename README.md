@@ -132,3 +132,21 @@ npm run test
 npm run lint
 npm run build
 ```
+
+## Espace compte
+
+Les routes `/compte/profil` et `/compte/cagnottes` sont réservées aux personnes
+connectées. Le profil permet de modifier les informations personnelles, de
+changer le mot de passe, de gérer une photo et de supprimer le compte. L’adresse
+email est affichée sans être modifiable. La suppression anonymise le compte tout
+en conservant les cagnottes et contributions nécessaires à l’historique.
+
+La gestion des cagnottes affiche uniquement celles de la personne connectée.
+Les sections des maquettes non encore prises en charge (pétitions, sondages,
+transactions et justificatifs) sont signalées comme indisponibles, sans données
+de démonstration ni flux de paiement.
+
+En développement, les photos sont enregistrées dans `fundeliobackend/uploads/`
+et servies par l’API. Ce stockage local ne convient pas à plusieurs instances ou
+à la production : un stockage persistant partagé devra être configuré avant
+déploiement.

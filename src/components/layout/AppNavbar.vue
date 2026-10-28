@@ -1,8 +1,15 @@
 <script setup>
 import { CircleHelp, LayoutGrid, Plus, Search, Wallet } from 'lucide-vue-next'
+import { useRouter } from 'vue-router'
 import { useAuthStore } from '../../stores/authStore'
 
+const router = useRouter()
 const auth = useAuthStore()
+
+const logout = async () => {
+  auth.logout()
+  await router.push('/')
+}
 </script>
 
 <template>
@@ -22,7 +29,7 @@ const auth = useAuthStore()
         </RouterLink>
         <RouterLink class="nav-link" to="/projects">
           <LayoutGrid :size="16" />
-          <span>Mes cagnottes</span>
+          <span>Cagnottes</span>
         </RouterLink>
         <RouterLink class="nav-link" to="/centre-aide">
           <CircleHelp :size="16" />
@@ -40,7 +47,10 @@ const auth = useAuthStore()
       </div>
       <div v-else class="user-actions">
         <span class="user-greeting">Bonjour {{ auth.user.firstName }}</span>
-        <button class="logout-button" type="button" @click="auth.logout()">
+        <RouterLink class="account-link" to="/compte/profil">
+          Mon compte
+        </RouterLink>
+        <button class="logout-button" type="button" @click="logout">
           Déconnexion
         </button>
       </div>
@@ -156,6 +166,7 @@ const auth = useAuthStore()
 }
 
 .sign-in-link,
+.account-link,
 .logout-button {
   color: var(--color-text-muted);
   font-size: 0.85rem;
@@ -179,6 +190,10 @@ const auth = useAuthStore()
   background: transparent;
   font: inherit;
   cursor: pointer;
+}
+
+.account-link {
+  text-decoration: none;
 }
 
 .user-greeting {
